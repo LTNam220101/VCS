@@ -43,11 +43,10 @@ void main()
 				{
 					pid_t status;
 					wait(&status);
-					printf("%d", status);
 					if (status == 512){
 						send(sockfd, "fail", 1024, 0);
 					}else {
-						int filefd = open("abc.txt", O_RDONLY);
+						int filefd = open("./Client/abc.txt", O_RDONLY);
 						ssize_t read_file;
 						while (1) {
 							read_file = read(filefd, mess_from_client, 1024);
@@ -69,7 +68,7 @@ void main()
 					}
 				}else {
 					char * argv = strtok(NULL, " ");
-					execl("./scr.sh", "./scr.sh", argv, NULL);
+					execl("./Client/scr.sh", "./Client/scr.sh", argv, NULL);
 				}
 			}
 			else if (strcmp(token, "touch") == 0) {

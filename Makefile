@@ -1,5 +1,5 @@
 all:
-	gcc -o client client.c
-	gcc -o server server.c
+	gcc -o client ./Client/client.c
+	gcc -o server ./Server/server.c
 clean:
 	rm -f client server
