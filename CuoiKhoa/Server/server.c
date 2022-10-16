@@ -46,16 +46,16 @@ void main()
 			ssize_t read_return;
 			while (1) {
 				read_return = read(connfd, mess_rev, 1024);
-				if (strcmp(mess_rev, "ok") == 0) {
-					break;
-				}
-				if (strcmp(mess_rev, "fail") == 0) {
-					isSuccess = 0;
-					break;
-				}
 				if (read_return == -1) {
 					isSuccess = 0;
 					perror("read");
+					break;
+				}
+				else if (read_return == 0) {
+					break;
+				}
+				else if (read_return < 1024) {
+					write(filefd, mess_rev, read_return);
 					break;
 				}
 				if (write(filefd, mess_rev, 1024) == -1) {
@@ -74,12 +74,16 @@ void main()
 			ssize_t read_return;
 			while (1) {
 				read_return = read(filefd, mess_from_server, 1024);
-				if (read_return == 0) {
-					break;
-				}
 				if (read_return == -1) {
 					perror("read");
                     break;
+				}
+				if (read_return == 0) {
+					break;
+				}
+				else if (read_return < 1024) {
+					send(connfd, mess_from_server, read_return, 0);
+					break;
 				}
 				if (send(connfd, mess_from_server, 1024, 0) == -1) {
 					perror("write");

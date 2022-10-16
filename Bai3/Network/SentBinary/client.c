@@ -30,7 +30,7 @@ int main(void)
 		printf("Server replied\n");
 
         /* Create file where data will be stored */
-        int fd = open("get_data.jpeg", O_WRONLY | O_CREAT); 
+        int fd = open("recv.txt", O_WRONLY | O_CREAT); 
         if(fd < 0)
         {
             printf("Error opening file");

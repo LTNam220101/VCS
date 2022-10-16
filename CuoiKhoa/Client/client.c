@@ -35,17 +35,22 @@ void main()
 			//SERVER GET
 			if(strcmp(token, "get") == 0){
 				char * file_path = strtok(NULL, " ");
-				printf("%s", file_path);
                 int filefd = open(file_path, O_RDONLY);
 				if (filefd > 0) {
 					bool isSuccess = 1;
 					ssize_t read_file;
 					while (1) {
 						read_file = read(filefd, mess_from_client, 1024);
-						printf("%s", mess_from_client);
 						if (read_file == -1) {
 							perror("read");
 							isSuccess = 0;
+							break;
+						}
+						if (read_file == 0) {
+							break;
+						}
+						else if (read_file < 1024) {
+							send(sockfd, mess_from_client, read_file, 0);
 							break;
 						}
 						if (send(sockfd, mess_from_client, 1024, 0) == -1) {
@@ -54,7 +59,6 @@ void main()
 							break;
 						}
 					}
-					isSuccess ? send(sockfd, "ok", 1024, 0) : send(sockfd, "fail", 1024, 0);
 					isSuccess ? printf("Sent file completed\n") : printf("Sent file failed\n");
 					close(filefd);
 				}else {
@@ -69,13 +73,16 @@ void main()
 				ssize_t read_return;
 				while (1) {
 					read_return = read(sockfd, mess_rev, 1024);
-					printf("%s ", mess_rev);
-					if (strcmp(mess_rev, "ok") == 0) {
-						break;
-					}
 					if (read_return == -1) {
 						perror("read");
                         break;
+					}
+					else if (read_return == 0) {
+                        break;
+					}
+					else if (read_return < 1024) {
+						write(filefd, mess_rev, read_return);
+						break;
 					}
 					if (write(filefd, mess_rev, 1024) == -1) {
 						perror("write");
@@ -99,9 +106,15 @@ void main()
 					int filefd = open("Client/message.txt", O_RDONLY);
 					ssize_t read_file;
 					read_file = read(filefd, mess_from_client, 1024);
-					printf("\n%s\n", mess_from_client);
 					if (read_file == -1) {
 						perror("read");
+					}
+					if (read_file == 0) {
+						mess_from_client[read_file] = '\0';
+						perror("read");
+					}
+					else if (read_file < 1024) {
+						mess_from_client[read_file] = '\0';
 					}
 					if (send(sockfd, mess_from_client, 1024, 0) == -1) {
 						perror("write");

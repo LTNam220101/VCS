@@ -32,7 +32,7 @@ int main(void)
     connfd = accept(listenfd, (struct sockaddr*)NULL ,NULL);
 
     /* Open the file that we wish to transfer */
-    int fd = open("index.jpeg", O_RDONLY);
+    int fd = open("alice.txt", O_RDONLY);
     if(fd < 0)
     {
         printf("File opern error");
