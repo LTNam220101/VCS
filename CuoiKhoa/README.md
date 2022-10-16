@@ -5,6 +5,6 @@ simple RAT
 2. Open another terminal: ./server
 3. ./client
 #### how to use
-> get: get <<Absolute path>>
-> sent: sent <<Absolute path>>
-> another command: like default command
+1. Get: get <<Absolute path>>
+2. Gent: sent <<Absolute path>>
+3. Another command: like default command
