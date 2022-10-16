@@ -10,14 +10,13 @@
 #include <sys/stat.h>
 #include <fcntl.h>
 #include <stdbool.h>
+#include<sys/wait.h>
 
 void main()
 {
 	int sockfd = -1;
 	struct sockaddr_in server_addr;
-	char recv_buffer[1024];
 
-	memset(recv_buffer, 0, sizeof(recv_buffer));
 	memset(&server_addr, 0, sizeof(server_addr));
 
 	sockfd = socket(AF_INET, SOCK_STREAM, 0);
@@ -33,73 +32,22 @@ void main()
             char mess_from_client[1024];
             read(sockfd, mess_rev, 1024);
 			char * token = strtok(mess_rev, " ");
-			if (strcmp(token, "pwd") == 0) {
-				send(sockfd, getenv("PWD"), 1024, 0);
-            	printf("Get pwd completed\n");
-			}
-			else if (strcmp(token, "ls") == 0) {
-				pid_t child_pid = fork();
-				if (child_pid != 0)
-				{
-					pid_t status;
-					wait(&status);
-					if (status == 512){
-						send(sockfd, "fail", 1024, 0);
-					}else {
-						int filefd = open("./Client/abc.txt", O_RDONLY);
-						ssize_t read_file;
-						while (1) {
-							read_file = read(filefd, mess_from_client, 1024);
-							if (read_file == 0)
-								break;
-							if (read_file == -1) {
-								perror("read");
-								exit(EXIT_FAILURE);
-							}
-							/* TODO use write loop: https://stackoverflow.com/questions/24259640/writing-a-full-buffer-using-write-system-call */
-							if (send(sockfd, mess_from_client, 1024, 0) == -1) {
-								perror("write");
-								exit(EXIT_FAILURE);
-							}
-						}
-						// send(sockfd, "ok", 1024, 0);
-						printf("get ls completed\n");
-						close(filefd);
-					}
-				}else {
-					char * argv = strtok(NULL, " ");
-					execl("./Client/scr.sh", "./Client/scr.sh", argv, NULL);
-				}
-			}
-			else if (strcmp(token, "touch") == 0) {
-				pid_t child_pid = fork();
-				if (child_pid != 0) 
-				{
-					wait();
-            		printf("touch completed\n");
-				}else {
-					char * argv = strtok(NULL, " ");
-					execl("/bin/touch", "touch", argv, NULL);
-				}
-				send(sockfd, getenv("PWD"), 1024, 0);
-			}
-			else if(strcmp(token, "get") == 0){
+			//SERVER GET
+			if(strcmp(token, "get") == 0){
 				char * file_path = strtok(NULL, " ");
+				printf("%s", file_path);
                 int filefd = open(file_path, O_RDONLY);
 				if (filefd > 0) {
 					bool isSuccess = 1;
 					ssize_t read_file;
 					while (1) {
 						read_file = read(filefd, mess_from_client, 1024);
-						if (read_file == 0)
-							isSuccess = 0;
-							break;
+						printf("%s", mess_from_client);
 						if (read_file == -1) {
 							perror("read");
 							isSuccess = 0;
 							break;
 						}
-						/* TODO use write loop: https://stackoverflow.com/questions/24259640/writing-a-full-buffer-using-write-system-call */
 						if (send(sockfd, mess_from_client, 1024, 0) == -1) {
 							perror("write");
 							isSuccess = 0;
@@ -113,6 +61,7 @@ void main()
 					send(sockfd, "fail", 1024, 0);
 				}
             }
+			//SERVER SENT
 			else if(strcmp(token, "sent") == 0){
                 int filefd = open("getFromServer.txt",
                 O_WRONLY | O_CREAT | O_TRUNC,
@@ -120,52 +69,55 @@ void main()
 				ssize_t read_return;
 				while (1) {
 					read_return = read(sockfd, mess_rev, 1024);
-					if (read_return == 0) {
-						break;
-					}
+					printf("%s ", mess_rev);
 					if (strcmp(mess_rev, "ok") == 0) {
 						break;
 					}
 					if (read_return == -1) {
 						perror("read");
-						exit(EXIT_FAILURE);
+                        break;
 					}
 					if (write(filefd, mess_rev, 1024) == -1) {
 						perror("write");
-						exit(EXIT_FAILURE);
+                        break;
 					}
 				}
             	printf("Get file completed\n");
 				close(filefd);
             }
-			else if(strcmp(token, "kill") == 0){
-                pid_t child_pid = fork();
-				if (child_pid != 0) 
-				{
-					printf("%d", child_pid);
-					uint32_t tmp = htonl(child_pid);
-					send(sockfd, &tmp, sizeof(tmp), 0);
-					// /* this code is only executed in the child process */ 
-					// printf ("I am a child and my pid = %d\n", getpid());
-					// execl("/bin/ls", "ls", "-l", NULL);
-					// /* if execl succeeds, this code is never used */
-					// printf ("Could not execl file /bin/ls\n");
-					// /* this exit stops only the child process */        
-					// exit(1);
-	            	printf("kill process completed\n");
-				}else {
-					// while(1) {
-					// 	printf("123");
-					// }
-				}
-				
-            }
-			else {
-            	printf("Not supported\n");
+			//DISCONNECT
+			else if(strcmp(token, "disconnect") == 0){
+				printf("disconnected\n");
+				break;
 			}
-            // gets(mess_from_client);
-            // fflush(stdin);
-            // send(sockfd , mess_from_client , 1024 , 0);
+			else {
+				pid_t child_pid = fork();
+				if (child_pid != 0)
+				{
+					wait(NULL);
+					//open the text to get output
+					int filefd = open("Client/message.txt", O_RDONLY);
+					ssize_t read_file;
+					read_file = read(filefd, mess_from_client, 1024);
+					printf("\n%s\n", mess_from_client);
+					if (read_file == -1) {
+						perror("read");
+					}
+					if (send(sockfd, mess_from_client, 1024, 0) == -1) {
+						perror("write");
+					}
+					printf("Completed\n");
+					close(filefd);
+				} else {
+					int i;
+					char *argv[10];
+					for ( i = 0; i < 8; i++){
+						argv[i] = strtok(NULL, " ");
+					}
+					// execute command, save the output to message.txt
+					execl("Client/scr.sh", "Client/scr.sh", token, argv[0], argv[1], argv[2], argv[3], argv[4], argv[5], argv[6], argv[7], NULL);
+				}
+			}
         }
 	close(sockfd);
 	}
