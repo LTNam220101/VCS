@@ -13,8 +13,7 @@
 #include<sys/wait.h>
 #include <signal.h>
 
-char* convertIntegerToChar(int N)
-{
+char* convertIntegerToChar(int N) {
  
     // Count digits in number N
     int m = N;
@@ -66,14 +65,12 @@ char* convertIntegerToChar(int N)
     return (char*)arr;
 }
 
-void sighandler(int signum)
-{
+void sighandler(int signum) {
 	printf("Bat duoc tin hieu %d, chuan bi thoat ...\n", signum);
    	exit(1);
 }
 
-void main()
-{
+void main() {
 	int sockfd = -1;
 	struct sockaddr_in server_addr;
 
@@ -196,6 +193,7 @@ void main()
 				{
 					char* arr = convertIntegerToChar(child_pid);
 					send(sockfd, arr, 1024, 0);
+					
 				}else {
 					execl("Client/fork", "Client/fork", NULL);
 				}
@@ -211,7 +209,7 @@ void main()
 				pid_t child_pid = fork();
 				if (child_pid != 0)
 				{
-					wait(NULL);
+					waitpid(child_pid, NULL, 0);
 					//open the message.txt, send the output to server
 					int filefd = open("Client/message.txt", O_RDONLY);
 					ssize_t read_file;
@@ -242,6 +240,9 @@ void main()
 					}
 					printf("Completed\n");
 					close(filefd);
+					if (getppid() == 0) {
+						return 0;
+					}
 				} else {
 					// get arguments
 					int i;

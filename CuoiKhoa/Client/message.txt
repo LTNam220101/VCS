@@ -1,1 +1,10 @@
-/home/nam/Desktop/linuxEmbedded/VCS/CuoiKhoa
+Code
+Desktop
+Documents
+Downloads
+Music
+Pictures
+Public
+snap
+Templates
+Videos
