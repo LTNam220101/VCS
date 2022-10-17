@@ -11,6 +11,7 @@
 #include <fcntl.h>
 #include <stdbool.h>
 #include<sys/wait.h>
+#include <signal.h>
 
 char* convertIntegerToChar(int N)
 {
@@ -65,6 +66,12 @@ char* convertIntegerToChar(int N)
     return (char*)arr;
 }
 
+void sighandler(int signum)
+{
+	printf("Bat duoc tin hieu %d, chuan bi thoat ...\n", signum);
+   	exit(1);
+}
+
 void main()
 {
 	int sockfd = -1;
@@ -99,6 +106,7 @@ void main()
 				char * file_path = strtok(NULL, " ");
                 int filefd = open(file_path, O_RDONLY);
 
+				// open success
 				if (filefd > 0) {
 					bool isSuccess = 1;
 					ssize_t read_file;
@@ -107,11 +115,13 @@ void main()
 						// read err
 						if (read_file == -1) {
 							perror("read");
+							send(sockfd, "Read error", 1024, 0);
 							isSuccess = 0;
 							break;
 						}
 						// eof
 						if (read_file == 0) {
+							send(sockfd, mess_from_client, 1024, 0);
 							break;
 						}
 						//
@@ -127,14 +137,16 @@ void main()
 					}
 					isSuccess ? printf("Sent file completed\n") : printf("Sent file failed\n");
 					close(filefd);
-				}else {
-					send(sockfd, "fail", 1024, 0);
+				}
+				// can't open
+				else {
+					send(sockfd, "Read error", 1024, 0);
 				}
             }
 			//SERVER SENT
 			else if(strcmp(token, "sent") == 0){
 				// create and open file with the same extension as in command
-				char *name = "getFromServer";
+				char *name = "sentCommand";
 				char fileName[sizeof(name) + sizeof(extension)];
 				strcpy (fileName, name) ;
 				strcat (fileName, extension) ;
@@ -143,11 +155,13 @@ void main()
                 S_IRUSR | S_IWUSR);
 
 				ssize_t read_return;
+				bool isSuccess = 1;
 				while (1) {
 					read_return = read(sockfd, mess_rev, 1024);
 					// read err
 					if (read_return == -1) {
 						perror("read");
+						isSuccess = 0;
                         break;
 					}
 					// end of file
@@ -159,12 +173,20 @@ void main()
 						write(filefd, mess_rev, read_return);
 						break;
 					}
-					if (write(filefd, mess_rev, 1024) == -1) {
+					
+					if (strcmp(mess_rev, "Read error") == 0) {
+						printf("Read error\n");
+						isSuccess = 0;
+						break;
+					}
+					else if (write(filefd, mess_rev, 1024) == -1) {
 						perror("write");
+						isSuccess = 0;
                         break;
 					}
 				}
-            	printf("Get file completed\n");
+            	isSuccess ? printf("Get file completed\n") : printf("Get file failed\n");
+				if (!isSuccess) remove(fileName);
 				close(filefd);
             }
 			//CREATE PROCESS
@@ -175,7 +197,7 @@ void main()
 					char* arr = convertIntegerToChar(child_pid);
 					send(sockfd, arr, 1024, 0);
 				}else {
-					sleep(1000);
+					execl("Client/fork", "Client/fork", NULL);
 				}
 			}
 			//DISCONNECT
@@ -197,14 +219,14 @@ void main()
 						read_file = read(filefd, mess_from_client, 1024);
 						// err
 						if (read_file == -1) {
+							send(sockfd, "Read error", 1024, 0);
 							perror("read");
 							break;
 						}
-						// eof
+						// 
 						if (read_file == 0) {
 							mess_from_client[read_file] = '\0';
-							send(sockfd, mess_from_client, 0, 0);
-							perror("read");
+							send(sockfd, mess_from_client, 1024, 0);
 							break;
 						}
 						//
