@@ -241,7 +241,7 @@ void main() {
 					printf("Completed\n");
 					close(filefd);
 					if (getppid() == 0) {
-						return 0;
+						return;
 					}
 				} else {
 					// get arguments

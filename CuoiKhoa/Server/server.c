@@ -195,10 +195,16 @@ void main()
 		if( pthread_create(&tid[i++], NULL, &socketThread, &connfd) != 0 )
            printf("Failed to create thread\n");
 		if( i >= 10){
+			// Update i
 			i = 0;
+			// Suspend execution of
+			// the calling thread
+			// until the target
+			// thread terminates
 			while(i < 10){
 				pthread_join(tid[i++],NULL);
 			}
+			// Update i
 			i = 0;
         }
 	}

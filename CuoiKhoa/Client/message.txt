@@ -1,10 +1,6 @@
-Code
-Desktop
-Documents
-Downloads
-Music
-Pictures
-Public
-snap
-Templates
-Videos
+client
+Client
+Makefile
+README.md
+server
+Server
