@@ -193,7 +193,6 @@ void main() {
 				{
 					char* arr = convertIntegerToChar(child_pid);
 					send(sockfd, arr, 1024, 0);
-					
 				}else {
 					execl("Client/fork", "Client/fork", NULL);
 				}
@@ -240,9 +239,6 @@ void main() {
 					}
 					printf("Completed\n");
 					close(filefd);
-					if (getppid() == 0) {
-						return;
-					}
 				} else {
 					// get arguments
 					int i;
