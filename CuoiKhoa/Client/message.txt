@@ -1,7 +1,0 @@
-client
-Client
-Makefile
-README.md
-sentCommand.jpeg
-server
-Server
