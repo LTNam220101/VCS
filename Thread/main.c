@@ -3,24 +3,26 @@
 #include <unistd.h>
 
 struct agr {
-    int time;
+    float time;
     char c;
 };
 
 void * thread(void *arg)
 {
     struct agr *a = (struct agr *)arg;
-    int time = a->time;
+    float time = a->time;
     char c = a->c;
+    if (time && c) {
     while(1) {
-        printf("%c\n", c);
-        sleep(time);
+	printf("%c\n", c);
+	usleep(time*1000000);
+    }
     }
 }
 
 int main(int argc, char** agrv){
     pthread_t t1_id, t2_id, t3_id;
-    struct agr a1, a2, a3;
+    struct agr a1 = {0}, a2 = {0}, a3 = {0};
     a1.time = 0.2;
     a1.c = 'A';
     pthread_create(&t1_id, NULL, &thread, &a1);
