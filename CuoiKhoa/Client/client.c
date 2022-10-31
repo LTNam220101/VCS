@@ -13,63 +13,6 @@
 #include<sys/wait.h>
 #include <signal.h>
 
-char* convertIntegerToChar(int N) {
- 
-    // Count digits in number N
-    int m = N;
-    int digit = 0;
-    while (m) {
- 
-        // Increment number of digits
-        digit++;
- 
-        // Truncate the last
-        // digit from the number
-        m /= 10;
-    }
- 
-    // Declare char array for result
-    char* arr;
- 
-    // Declare duplicate char array
-    char arr1[digit];
- 
-    // Memory allocation of array
-    arr = (char*)malloc(digit);
- 
-    // Separating integer into digits and
-    // accommodate it to character array
-    int index = 0;
-    while (N) {
- 
-        // Separate last digit from
-        // the number and add ASCII
-        // value of character '0' is 48
-        arr1[++index] = N % 10 + '0';
- 
-        // Truncate the last
-        // digit from the number
-        N /= 10;
-    }
- 
-    // Reverse the array for result
-    int i;
-    for (i = 0; i < index; i++) {
-        arr[i] = arr1[index - i];
-    }
- 
-    // Char array truncate by null
-    arr[i] = '\0';
- 
-    // Return char array
-    return (char*)arr;
-}
-
-void sighandler(int signum) {
-	printf("Bat duoc tin hieu %d, chuan bi thoat ...\n", signum);
-   	exit(1);
-}
-
 void main() {
 	int sockfd = -1;
 	struct sockaddr_in server_addr;
@@ -101,8 +44,8 @@ void main() {
 			if(strcmp(token, "get") == 0){
 				// open file
 				char * file_path = strtok(NULL, " ");
+				file_path[strlen(file_path)-1] = '\0';
                 int filefd = open(file_path, O_RDONLY);
-
 				// open success
 				if (filefd > 0) {
 					bool isSuccess = 1;
@@ -111,23 +54,21 @@ void main() {
 						read_file = read(filefd, mess_from_client, 1024);
 						// read err
 						if (read_file == -1) {
-							perror("read");
-							send(sockfd, "Read error", 1024, 0);
+							perror("Error");
+							send(sockfd, "Error", 5, 0);
 							isSuccess = 0;
 							break;
 						}
-						// eof
 						if (read_file == 0) {
-							send(sockfd, mess_from_client, 1024, 0);
 							break;
 						}
 						//
-						else if (read_file < 1024) {
+						if (read_file < 1024) {
 							send(sockfd, mess_from_client, read_file, 0);
 							break;
 						}
 						if (send(sockfd, mess_from_client, 1024, 0) == -1) {
-							perror("write");
+							perror("Error");
 							isSuccess = 0;
 							break;
 						}
@@ -137,16 +78,17 @@ void main() {
 				}
 				// can't open
 				else {
-					send(sockfd, "Read error", 1024, 0);
+					send(sockfd, "Error", 5, 0);
 				}
             }
 			//SERVER SENT
 			else if(strcmp(token, "sent") == 0){
 				// create and open file with the same extension as in command
 				char *name = "sentCommand";
-				char fileName[sizeof(name) + sizeof(extension)];
+				char fileName[strlen(name) + strlen(extension)];
 				strcpy (fileName, name) ;
 				strcat (fileName, extension) ;
+				fileName[strlen(fileName)-1] = '\0';
                 int filefd = open(fileName,
                 O_WRONLY | O_CREAT | O_TRUNC,
                 S_IRUSR | S_IWUSR);
@@ -157,52 +99,40 @@ void main() {
 					read_return = read(sockfd, mess_rev, 1024);
 					// read err
 					if (read_return == -1) {
-						perror("read");
+						perror("Error");
 						isSuccess = 0;
                         break;
 					}
-					// end of file
-					else if (read_return == 0) {
+					if (read_return == 0) {
                         break;
 					}
 					//
-					else if (read_return < 1024) {
-						write(filefd, mess_rev, read_return);
-						break;
-					}
-					
-					if (strcmp(mess_rev, "Read error") == 0) {
-						printf("Read error\n");
+					if (strcmp(mess_rev, "Error") == 0) {
+						printf("Error\n");
 						isSuccess = 0;
 						break;
 					}
-					else if (write(filefd, mess_rev, 1024) == -1) {
-						perror("write");
+					if (read_return < 1024) {
+						write(filefd, mess_rev, read_return);
+						break;
+					}
+					if (write(filefd, mess_rev, 1024) == -1) {
+						perror("Error");
 						isSuccess = 0;
                         break;
 					}
 				}
             	isSuccess ? printf("Get file completed\n") : printf("Get file failed\n");
-				if (!isSuccess) remove(fileName);
 				close(filefd);
+				if (!isSuccess) remove(fileName);
             }
-			//CREATE PROCESS
-			else if(strcmp(token, "fork") == 0){
-				pid_t child_pid = fork();
-				if (child_pid != 0)
-				{
-					char* arr = convertIntegerToChar(child_pid);
-					send(sockfd, arr, 1024, 0);
-				}else {
-					execl("Client/fork", "Client/fork", NULL);
-				}
-			}
 			//DISCONNECT
 			else if(strcmp(token, "disconnect") == 0){
 				printf("disconnected\n");
 				// break the while loop, close connect
 				break;
 			}
+			//Create Process
 			else {
 				// other command
 				pid_t child_pid = fork();
@@ -216,8 +146,8 @@ void main() {
 						read_file = read(filefd, mess_from_client, 1024);
 						// err
 						if (read_file == -1) {
-							send(sockfd, "Read error", 1024, 0);
-							perror("read");
+							send(sockfd, "Error", 5, 0);
+							perror("Error");
 							break;
 						}
 						// 
@@ -232,8 +162,8 @@ void main() {
 							send(sockfd, mess_from_client, read_file, 0);
 							break;
 						}
-						if (send(sockfd, mess_from_client, 1024, 0) == -1) {
-							perror("write");
+						if (send(sockfd, mess_from_client, read_file, 0) == -1) {
+							perror("Error");
 							break;
 						}
 					}

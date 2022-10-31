@@ -12,21 +12,17 @@
 #include <stdbool.h>
 #include<pthread.h>
 
-char mess_rev[1024];
-char mess_from_server[1024];
-pthread_mutex_t lock = PTHREAD_MUTEX_INITIALIZER;
-
 void * socketThread(void *arg)
 {
+	char mess_rev[1024];
+	char mess_from_server[1024];
 	int connfd = *((int *)arg);
   	while(1) {
 		// get server's full command
-		pthread_mutex_lock(&lock);  
 		do{
 			printf("Server: ");
-			gets(mess_from_server);
-			fflush(stdin);
-		}while (strcmp(mess_from_server, "") == 0);
+		 	fgets(mess_from_server, 1024, stdin);
+		}while (strcmp(mess_from_server, "\n") == 0);
 		send(connfd , mess_from_server , 1024 , 0);
 
 		// get file's extension
@@ -35,13 +31,12 @@ void * socketThread(void *arg)
 
 		// get command
 		char * token = strtok(mess_from_server, " ");
-		pthread_mutex_unlock(&lock);
 
 		// GET FILE
 		if (strcmp(token, "get") == 0) {
 			// create and open file with the same extension as in command
 			char *name = "getCommand";
-			char fileName[sizeof(name) + sizeof(extension)];
+			char fileName[strlen(name) + strlen(extension)];
 			strcpy (fileName, name) ;
 			strcat (fileName, extension) ;
 			int filefd = open(fileName,
@@ -50,87 +45,78 @@ void * socketThread(void *arg)
 
 			bool isSuccess = 1;
 			ssize_t read_return;
-			pthread_mutex_lock(&lock);  
 			while (1) {
 				read_return = read(connfd, mess_rev, 1024);
 				// read err
 				if (read_return == -1) {
 					isSuccess = 0;
-					perror("read");
+					perror("Error");
 					break;
 				}
-				// end of file
-				else if (read_return == 0) {
+				if (read_return == 0) {
 					break;
 				}
-				// 
-				else if (read_return < 1024) {
+				if (strcmp(mess_rev, "Error") == 0) {
+					isSuccess = 0;
+					printf("Error\n");
+					break;
+				}
+				if (read_return < 1024) {
 					write(filefd, mess_rev, read_return);
 					break;
 				}
-				if (strcmp(mess_rev, "Read error") == 0) {
+				if (write(filefd, mess_rev, 1024) == -1) {
 					isSuccess = 0;
-					printf("Read error\n");
-					break;
-				}
-				else if (write(filefd, mess_rev, 1024) == -1) {
-					isSuccess = 0;
-					perror("write");
+					perror("Error");
 					break;
 				}
 			}
-			pthread_mutex_unlock(&lock);
 			isSuccess ? printf("Get file completed\n") : printf("Get file failed\n");
-			if (!isSuccess) remove(fileName);
 			close(filefd);
+			if (!isSuccess) remove(fileName);
 		}
 		//SENT FILE
 		else if (strcmp(token, "sent") == 0) {
 			// open file
 			char * file_path = strtok(NULL, " ");
+			file_path[strlen(file_path)-1] = '\0';
+			printf("%s", file_path);
 			int filefd = open(file_path, O_RDONLY);
 
 			// open success
 			if (filefd > 0){
 				bool isSuccess = 1;
 				ssize_t read_return;
-				pthread_mutex_lock(&lock);  
 				while (1) {
 					read_return = read(filefd, mess_from_server, 1024);
 					// read err
 					if (read_return == -1) {
-						perror("read");
+						perror("Error");
+						send(filefd, "Error", 5, 0);
 						isSuccess = 0;
 						break;
 					}
-					// eof
 					if (read_return == 0) {
 						break;
 					}
 					//
 					else if (read_return < 1024) {
-						send(connfd, mess_from_server, read_return, 0);
+						send(filefd, mess_from_server, read_return, 0);
 						break;
 					}
 					if (send(connfd, mess_from_server, 1024, 0) == -1) {
-						perror("write");
+						perror("Error");
 						isSuccess = 0;
 						break;
 					}
 				}
-				pthread_mutex_unlock(&lock);
 				isSuccess ? printf("Sent file completed\n") : printf("Sent file failed\n");
 				close(filefd);
 			}
 			// can't open
 			else {
-				send(connfd, "Read error", 1024, 0);
+				send(connfd, "Error", 5, 0);
 			}
-		}
-		//CREATE PROCESS
-		else if(strcmp(token, "fork") == 0){
-			read(connfd, mess_rev, 1024);
-			printf("%s\n", mess_rev);
 		}
 		//DISCONNECT
 		else if(strcmp(token, "disconnect") == 0){
@@ -139,13 +125,14 @@ void * socketThread(void *arg)
 			// break the while loop, close connect
 			break;
 		}
+		//Create Process
 		else {
 			// other command
 			ssize_t read_return;
 			while(1) {
 				read_return = read(connfd, mess_rev, 1024);
 				if (read_return == -1) {
-					perror("read");
+					perror("Error");
 					break;
 				}
 				if (read_return == 0) {
@@ -159,7 +146,7 @@ void * socketThread(void *arg)
 				}
 				else {
 					printf("%s\n", mess_rev);
-					if (strcmp(mess_rev, "Read error") == 0 || strcmp(mess_rev, "") == 0)
+					if (strcmp(mess_rev, "Error") == 0 || strcmp(mess_rev, "") == 0)
 						break;
 				}
 			}

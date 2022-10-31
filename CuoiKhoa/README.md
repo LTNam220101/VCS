@@ -7,5 +7,5 @@ simple RAT
 #### how to use
 1. Get: `get "Absolute path"`
 2. Sent: `sent "Absolute path"`
-3. Create process: `fork`
-4. Another command: like default command
+3. create process: ls, pwd, mkdir, ...
+4. kill process: ps -ef   ->   kill -9 pid
